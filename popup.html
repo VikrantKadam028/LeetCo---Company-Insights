@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LeetCo — Company Insights</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      min-width: 300px;
+      padding: 16px;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      color: #f1f5f9;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Animated background */
+    body::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: 
+        radial-gradient(circle at 20% 80%, rgba(56, 189, 248, 0.15) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(168, 85, 247, 0.15) 0%, transparent 50%);
+      z-index: -1;
+      animation: pulseBackground 20s ease-in-out infinite alternate;
+    }
+
+    @keyframes pulseBackground {
+      0% {
+        opacity: 0.7;
+        transform: scale(1);
+      }
+      100% {
+        opacity: 1;
+        transform: scale(1.05);
+      }
+    }
+
+    /* Header */
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid rgba(56, 189, 248, 0.2);
+      position: relative;
+    }
+
+    .logo {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 18px;
+      color: white;
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+      animation: logoFloat 3s ease-in-out infinite;
+    }
+
+    @keyframes logoFloat {
+      0%, 100% {
+        transform: translateY(0);
+      }
+      50% {
+        transform: translateY(-4px);
+      }
+    }
+
+    .title-container h1 {
+      font-size: 18px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #38bdf8, #a855f7);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      margin-bottom: 4px;
+    }
+
+    .title-container .tagline {
+      font-size: 12px;
+      color: #94a3b8;
+      font-weight: 500;
+      letter-spacing: 0.3px;
+    }
+
+    /* Status Container */
+    .status-container {
+      background: rgba(30, 41, 59, 0.6);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(56, 189, 248, 0.2);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 20px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    }
+
+    .status-container:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+      border-color: rgba(56, 189, 248, 0.4);
+    }
+
+    .status-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .status-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(30, 41, 59, 0.8);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+    }
+
+    .status-icon svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    .status-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #f1f5f9;
+    }
+
+    .status-text {
+      font-size: 14px;
+      line-height: 1.6;
+      color: #cbd5e1;
+      padding-left: 52px;
+      position: relative;
+    }
+
+    .status-text::before {
+      content: '';
+      position: absolute;
+      left: 20px;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: linear-gradient(to bottom, #38bdf8, #8b5cf6);
+      border-radius: 1px;
+    }
+
+    /* Status Colors */
+    .status-container.success {
+      border-color: rgba(34, 197, 94, 0.3);
+      background: rgba(21, 128, 61, 0.15);
+    }
+
+    .status-container.success .status-icon {
+      border-color: rgba(34, 197, 94, 0.4);
+      background: rgba(21, 128, 61, 0.2);
+    }
+
+    .status-container.success .status-text::before {
+      background: linear-gradient(to bottom, #22c55e, #16a34a);
+    }
+
+    .status-container.warning {
+      border-color: rgba(250, 204, 21, 0.3);
+      background: rgba(146, 64, 14, 0.15);
+    }
+
+    .status-container.warning .status-icon {
+      border-color: rgba(250, 204, 21, 0.4);
+      background: rgba(146, 64, 14, 0.2);
+    }
+
+    .status-container.warning .status-text::before {
+      background: linear-gradient(to bottom, #facc15, #eab308);
+    }
+
+    .status-container.error {
+      border-color: rgba(239, 68, 68, 0.3);
+      background: rgba(127, 29, 29, 0.15);
+    }
+
+    .status-container.error .status-icon {
+      border-color: rgba(239, 68, 68, 0.4);
+      background: rgba(127, 29, 29, 0.2);
+    }
+
+    .status-container.error .status-text::before {
+      background: linear-gradient(to bottom, #ef4444, #dc2626);
+    }
+
+    /* Footer */
+    .footer {
+      text-align: center;
+      padding-top: 16px;
+      border-top: 1px solid rgba(56, 189, 248, 0.2);
+      position: relative;
+    }
+
+    .footer-text {
+      font-size: 12px;
+      color: #94a3b8;
+      line-height: 1.5;
+    }
+
+    .footer-highlight {
+      color: #38bdf8;
+      font-weight: 600;
+    }
+
+    /* Loader Animation */
+    .loader {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .loader-dot {
+      width: 8px;
+      height: 8px;
+      background: #38bdf8;
+      border-radius: 50%;
+      animation: loaderDots 1.4s ease-in-out infinite both;
+    }
+
+    .loader-dot:nth-child(1) { animation-delay: -0.32s; }
+    .loader-dot:nth-child(2) { animation-delay: -0.16s; }
+
+    @keyframes loaderDots {
+      0%, 80%, 100% {
+        transform: scale(0);
+        opacity: 0.5;
+      }
+      40% {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+
+    /* Responsive */
+    @media (max-width: 320px) {
+      body {
+        padding: 12px;
+      }
+    }
+
+    /* Fade-in Animation */
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    body > * {
+      animation: fadeIn 0.6s ease-out;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo">LC</div>
+    <div class="title-container">
+      <h1>LeetCo — Company Insights</h1>
+      <div class="tagline">Smart prep for your dream job</div>
+    </div>
+  </div>
+
+  <div id="status" class="status-container">
+    <div class="status-header">
+      <div class="status-icon">
+        <svg viewBox="0 0 24 24" fill="none">
+          <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2Z" 
+                stroke="#38bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M12 6V12L16 14" 
+                stroke="#38bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="status-title">Extension Status</div>
+    </div>
+    <div id="statusText" class="status-text">
+      <div class="loader">
+        <div class="loader-dot"></div>
+        <div class="loader-dot"></div>
+        <div class="loader-dot"></div>
+        Connecting to LeetCode...
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <div class="footer-text">
+      <span class="footer-highlight">LeetCo</span> helps you master company-specific problems<br>
+      for focused interview preparation
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+  <script>
+    // Enhanced popup functionality with animations
+    document.addEventListener('DOMContentLoaded', function() {
+      // Update status with animation
+      function updateStatus(status, message) {
+        const statusContainer = document.getElementById('status');
+        const statusText = document.getElementById('statusText');
+        
+        // Remove all status classes
+        statusContainer.classList.remove('success', 'warning', 'error');
+        
+        // Add new status class with animation
+        statusContainer.classList.add(status);
+        
+        // Update text with fade effect
+        statusText.style.opacity = '0';
+        setTimeout(() => {
+          statusText.innerHTML = message;
+          statusText.style.opacity = '1';
+          statusText.style.transition = 'opacity 0.3s ease';
+        }, 150);
+        
+        // Update status icon
+        const iconSvg = statusContainer.querySelector('.status-icon svg');
+        if (status === 'success') {
+          iconSvg.innerHTML = `
+            <path d="M9 12L11 14L15 10" 
+                  stroke="#22c55e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2Z" 
+                  stroke="#22c55e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          `;
+        } else if (status === 'warning') {
+          iconSvg.innerHTML = `
+            <path d="M12 8V12" 
+                  stroke="#facc15" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M12 16H12.01" 
+                  stroke="#facc15" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2Z" 
+                  stroke="#facc15" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          `;
+        } else if (status === 'error') {
+          iconSvg.innerHTML = `
+            <path d="M15 9L9 15" 
+                  stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M9 9L15 15" 
+                  stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2Z" 
+                  stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          `;
+        }
+      }
+
+      // Simulate data loading
+      setTimeout(() => {
+        updateStatus('success', '✓ Connected to LeetCode<br>Ready to enhance your interview prep!');
+      }, 1200);
+
+      // Check extension status
+      chrome.runtime.sendMessage({ type: 'PING_EXTENSION' }, (response) => {
+        if (chrome.runtime.lastError) {
+          updateStatus('error', '✗ Extension not responding<br>Please refresh the page');
+        } else if (response && response.status === 'READY') {
+          updateStatus('success', '✓ Extension active<br>Working seamlessly with LeetCode');
+        }
+      });
+    });
+  </script>
+</body>
+</html>
