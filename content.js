@@ -1,8 +1,3 @@
-/**
- * LeetCode Company Insights — content.js
- * With perfectly aligned company logo badges
- */
-
 (() => {
   const EXTENSION = "LeetCode Company Insights";
   const API_BASE_URL = "https://backend-leetco.onrender.com/api/problem";
@@ -169,10 +164,23 @@
     'jump trading': 'jumptrading.com',
   };
 
-  // Colors for fallback icons - defined globally
+  // LeetCode theme colors
+  const LEETCODE_COLORS = {
+    primary: '#1A1A1A',
+    secondary: '#262626',
+    accent: '#FFA116',
+    textPrimary: '#FFFFFF',
+    textSecondary: '#B3B3B3',
+    border: '#3D3D3D',
+    success: '#0ACF83',
+    warning: '#FFA116',
+    error: '#FF375F'
+  };
+
+  // Colors for fallback icons
   const FALLBACK_COLORS = [
-    '#A855F7', '#EC4899', '#F59E0B', '#10B981', '#3B82F6', 
-    '#8B5CF6', '#EF4444', '#06B6D4', '#F97316', '#14B8A6'
+    '#FFA116', '#0ACF83', '#FF375F', '#2E8B57', '#1E90FF',
+    '#9370DB', '#FF6347', '#20B2AA', '#FFD700', '#DA70D6'
   ];
 
   /**
@@ -211,7 +219,7 @@
     const domain = getCompanyDomain(companyName);
     if (!domain) return null;
     
-    return `https://img.logo.dev/${domain}?token=${LOGO_API_TOKEN}&size=32&format=png`;
+    return `https://img.logo.dev/${domain}?token=${LOGO_API_TOKEN}&size=48&format=png`;
   }
 
   /**
@@ -224,26 +232,10 @@
   }
 
   /**
-   * Create fallback icon (first letter of company name)
+   * Get company display name
    */
-  function createFallbackIcon(companyName) {
-    const letter = companyName.charAt(0).toUpperCase();
-    const color = getFallbackColor(companyName);
-    
-    return `
-      <div style="
-        width: 16px;
-        height: 16px;
-        border-radius: 3px;
-        background: ${color};
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: 700;
-        font-size: 9px;
-        color: white;
-      ">${letter}</div>
-    `;
+  function getCompanyDisplayName(company) {
+    return typeof company === "string" ? company : company.name || company.company || company.companyName || "Unknown";
   }
 
   /* -------------------- Utilities -------------------- */
@@ -281,12 +273,12 @@
         <div style="
           width: 20px;
           height: 20px;
-          border: 2px solid rgba(168, 85, 247, 0.4);
-          border-top-color: rgba(168, 85, 247, 0.9);
+          border: 2px solid rgba(255, 161, 22, 0.4);
+          border-top-color: rgba(255, 161, 22, 0.9);
           border-radius: 50%;
           animation: spin 1s linear infinite;
         "></div>
-        <span style="color: rgba(255, 255, 255, 0.7);">Loading company insights…</span>
+        <span style="color: ${LEETCODE_COLORS.textSecondary};">Loading company insights…</span>
       </div>
       <style>
         @keyframes spin {
@@ -295,6 +287,132 @@
       </style>
     `;
     return box;
+  }
+
+  /**
+   * Create a small hover dropdown showing company tags below the company box
+   */
+  function createHoverDropdown(companies, referenceElement) {
+    const dropdown = document.createElement('div');
+    dropdown.id = 'leetcode-company-hover-dropdown';
+    dropdown.style.cssText = `
+      position: absolute;
+      top: 100%;
+      left: 0;
+      margin-top: 8px;
+      background: ${LEETCODE_COLORS.primary};
+      border: 1px solid ${LEETCODE_COLORS.border};
+      border-radius: 8px;
+      padding: 8px;
+      max-height: 200px;
+      overflow-y: auto;
+      z-index: 1000;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      width: 395px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    `;
+
+    companies.forEach(company => {
+      const name = getCompanyDisplayName(company);
+      const logoUrl = getLogoUrl(name);
+      const fallbackColor = getFallbackColor(name);
+
+      const tag = document.createElement('div');
+      tag.style.cssText = `
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 8px;
+        background: ${LEETCODE_COLORS.secondary};
+        border-radius: 6px;
+        font-size: 12px;
+        color: ${LEETCODE_COLORS.textPrimary};
+        white-space: nowrap;
+        max-width: 120px;
+      `;
+
+      const logoContainer = document.createElement('div');
+      logoContainer.style.cssText = `
+        width: 16px;
+        height: 16px;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        flex-shrink: 0;
+        background: ${LEETCODE_COLORS.primary};
+      `;
+
+      if (logoUrl) {
+        const img = document.createElement('img');
+        img.src = logoUrl;
+        img.alt = name;
+        img.style.cssText = 'width: 100%; height: 100%; object-fit: contain;';
+        img.onerror = () => {
+          img.style.display = 'none';
+          const fallback = document.createElement('div');
+          fallback.style.cssText = `
+            width: 100%;
+            height: 100%;
+            border-radius: 4px;
+            background: ${fallbackColor};
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 10px;
+            color: white;
+          `;
+          fallback.textContent = name.charAt(0).toUpperCase();
+          logoContainer.appendChild(fallback);
+        };
+        logoContainer.appendChild(img);
+      } else {
+        const fallback = document.createElement('div');
+        fallback.style.cssText = `
+          width: 100%;
+          height: 100%;
+          border-radius: 4px;
+          background: ${fallbackColor};
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: 600;
+          font-size: 10px;
+          color: white;
+        `;
+        fallback.textContent = name.charAt(0).toUpperCase();
+        logoContainer.appendChild(fallback);
+      }
+
+      const nameLabel = document.createElement('span');
+      nameLabel.textContent = name;
+      nameLabel.style.overflow = 'hidden';
+      nameLabel.style.textOverflow = 'ellipsis';
+
+      tag.appendChild(logoContainer);
+      tag.appendChild(nameLabel);
+      dropdown.appendChild(tag);
+    });
+
+    // Position dropdown relative to reference element
+    const rect = referenceElement.getBoundingClientRect();
+    const scrollTop = window.scrollY || document.documentElement.scrollTop;
+    const scrollLeft = window.scrollX || document.documentElement.scrollLeft;
+
+    dropdown.style.top = `${rect.bottom + scrollTop + 8}px`;
+    dropdown.style.left = `${rect.left + scrollLeft}px`;
+
+    // Prevent dropdown from going off right edge
+    const dropdownRect = dropdown.getBoundingClientRect();
+    if (dropdownRect.right > window.innerWidth) {
+      dropdown.style.left = `${window.innerWidth - dropdownRect.width - 10}px`;
+    }
+
+    return dropdown;
   }
 
   /* -------------------- Core Logic -------------------- */
@@ -332,7 +450,7 @@
                 display: flex;
                 align-items: center;
                 gap: 8px;
-                color: rgba(255, 255, 255, 0.5);
+                color: ${LEETCODE_COLORS.textSecondary};
               ">
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="flex-shrink: 0;">
                   <circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="2" fill="none"/>
@@ -344,140 +462,171 @@
             return;
           }
 
+          const companies = data.companies;
+          const totalCompanies = companies.length;
+          const displayCompanies = companies.slice(0, 5);
+          
           box.innerHTML = `
-            <div style="
+            <div id="horizontal-logos-container" style="
               display: flex;
               align-items: center;
-              gap: 10px;
-              margin-bottom: 12px;
+              cursor: pointer;
+              border-radius: 8px;
+              background: ${LEETCODE_COLORS.secondary};
+              transition: all 0.3s ease;
+              margin-bottom: 10px;
+            "
+            onmouseover="
+              this.style.background = '#2D2D2D';
+              this.style.borderColor = '${LEETCODE_COLORS.accent}';
+            "
+            onmouseout="
+              this.style.background = '${LEETCODE_COLORS.secondary}';
+              this.style.borderColor = '${LEETCODE_COLORS.border}';
             ">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style="flex-shrink: 0;">
-                <path d="M3 21h18M5 21V7l8-4v18M19 21V10l-6-3" stroke="rgba(168, 85, 247, 0.9)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M9 9v.01M9 12v.01M9 15v.01M9 18v.01" stroke="rgba(168, 85, 247, 0.9)" stroke-width="2" stroke-linecap="round"/>
-              </svg>
-              <strong style="
-                font-size: 14px;
-                font-weight: 600;
-                color: rgba(255, 255, 255, 0.95);
-                letter-spacing: 0.3px;
-              ">Asked by Companies</strong>
-              <span style="
-                background: rgba(168, 85, 247, 0.15);
-                color: rgba(168, 85, 247, 0.95);
-                padding: 2px 8px;
-                border-radius: 10px;
-                font-size: 11px;
-                font-weight: 600;
-              ">${data.companies.length}</span>
-            </div>
-            <div style="
-              display: flex;
-              flex-wrap: wrap;
-              gap: 8px;
-            ">
-              ${data.companies
-                .map((c, index) => {
-                  const name =
-                    typeof c === "string"
-                      ? c
-                      : c.name || c.company || c.companyName || "Unknown";
-
+              <div style="
+                display: flex;
+                align-items: center;
+                position: relative;
+              ">
+                ${displayCompanies.map((company, index) => {
+                  const name = getCompanyDisplayName(company);
                   const logoUrl = getLogoUrl(name);
                   const fallbackColor = getFallbackColor(name);
-                  const companyId = `company-${index}`;
-
+                  
                   return `
-                    <div id="${companyId}" style="
+                    <div style="
+                      width: 36px;
+                      height: 36px;
+                      border-radius: 30px;
+                      background: white;
                       display: flex;
                       align-items: center;
-                      height: 28px;
-                      padding: 0 10px 0 6px;
-                      border-radius: 6px;
-                      background: rgba(255, 255, 255, 0.05);
-                      border: 1px solid rgba(255, 255, 255, 0.1);
-                      font-size: 13px;
-                      font-weight: 500;
-                      color: rgba(255, 255, 255, 0.92);
-                      transition: all 0.2s ease;
-                      cursor: default;
-                      box-sizing: border-box;
-                      line-height: 1;
-                    "
-                    onmouseover="
-                      this.style.background='rgba(168, 85, 247, 0.15)';
-                      this.style.borderColor='rgba(168, 85, 247, 0.35)';
-                      this.style.transform='translateY(-1px)';
-                    "
-                    onmouseout="
-                      this.style.background='rgba(255, 255, 255, 0.05)';
-                      this.style.borderColor='rgba(255, 255, 255, 0.1)';
-                      this.style.transform='translateY(0)';
-                    "
-                    >
-                      <div style="
-                        width: 16px;
-                        height: 16px;
-                        border-radius: 3px;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        flex-shrink: 0;
-                        margin-right: 6px;
-                        overflow: hidden;
-                        position: relative;
-                      ">
-                        ${
-                          logoUrl
-                            ? `
-                              <img
-                                src="${logoUrl}"
-                                alt="${name}"
-                                style="
-                                  width: 100%;
-                                  height: 100%;
-                                  object-fit: contain;
-                                  display: block;
-                                "
-                                onerror="
-                                  this.onerror = null;
-                                  this.style.display = 'none';
-                                  const fallback = document.createElement('div');
-                                  fallback.style.width = '16px';
-                                  fallback.style.height = '16px';
-                                  fallback.style.borderRadius = '3px';
-                                  fallback.style.background = '${fallbackColor}';
-                                  fallback.style.display = 'flex';
-                                  fallback.style.alignItems = 'center';
-                                  fallback.style.justifyContent = 'center';
-                                  fallback.style.fontWeight = '700';
-                                  fallback.style.fontSize = '9px';
-                                  fallback.style.color = 'white';
-                                  fallback.textContent = '${name.charAt(0).toUpperCase()}';
-                                  this.parentElement.appendChild(fallback);
-                                "
-                              />
-                            `
-                            : createFallbackIcon(name)
-                        }
-                      </div>
-                      <span style="
-                        white-space: nowrap;
-                        font-size: 12px;
-                        font-weight: 500;
-                        line-height: 1;
-                      ">
-                        ${name}
-                      </span>
+                      justify-content: center;
+                      margin-left: ${index > 0 ? '-8px' : '0'};
+                      position: relative;
+                      z-index: ${displayCompanies.length - index};
+                      overflow: hidden;
+                      transition: all 0.3s ease;
+                    ">
+                      <img 
+                        src="${logoUrl || ''}" 
+                        alt="${name}"
+                        style="width: 100%; height: 100%; object-fit: contain; "
+                        onerror="
+                          this.onerror = null;
+                          this.style.display = 'none';
+                          const fallback = document.createElement('div');
+                          fallback.style.width = '100%';
+                          fallback.style.height = '100%';
+                          fallback.style.borderRadius = '10px';
+                          fallback.style.background = '${fallbackColor}';
+                          fallback.style.display = 'flex';
+                          fallback.style.alignItems = 'center';
+                          fallback.style.justifyContent = 'center';
+                          fallback.style.fontWeight = '600';
+                          fallback.style.fontSize = '14px';
+                          fallback.style.color = 'white';
+                          fallback.textContent = '${name.charAt(0).toUpperCase()}';
+                          this.parentElement.appendChild(fallback);
+                        "
+                      />
                     </div>
                   `;
-                })
-                .join("")}
+                }).join('')}
+                
+                ${totalCompanies > 5 ? `
+                  <div style="
+                    width: 36px;
+                    height: 36px;
+                    border-radius: 25px;
+                    background: ${LEETCODE_COLORS.secondary};
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    margin-left: -8px;
+                    position: relative;
+                    z-index: 1;
+                    font-size: 12px;
+                    font-weight: 600;
+                    color: ${LEETCODE_COLORS.accent};
+                    background: rgba(255, 161, 22, 0.1);
+                  ">
+                    +${totalCompanies - 5}
+                  </div>
+                ` : ''}
+              </div>
+              
+              <div style="
+                margin-left: 16px;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                flex: 1;
+              ">
+                <span style="
+                  font-size: 14px;
+                  color: ${LEETCODE_COLORS.textSecondary};
+                  font-weight: 500;
+                ">
+                  ${totalCompanies} ${totalCompanies === 1 ? 'company' : 'companies'} asked this question
+                </span>
+              </div>
+              
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style="
+                color: ${LEETCODE_COLORS.textSecondary};
+                flex-shrink: 0;
+              ">
+                <path d="M9 18L15 12L9 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
             </div>
           `;
+          
+          // Hover behavior for dropdown
+          setTimeout(() => {
+            const container = document.getElementById('horizontal-logos-container');
+            if (!container) return;
 
-          console.log(
-            `[${EXTENSION}] Displayed ${data.companies.length} companies with logos`
-          );
+            let isMouseOverContainer = false;
+            let isMouseOverDropdown = false;
+
+            const showDropdown = () => {
+              const existing = document.getElementById('leetcode-company-hover-dropdown');
+              if (existing) existing.remove();
+
+              const dropdown = createHoverDropdown(companies, container);
+              document.body.appendChild(dropdown);
+
+              // Track mouse over dropdown
+              dropdown.addEventListener('mouseenter', () => {
+                isMouseOverDropdown = true;
+              });
+              dropdown.addEventListener('mouseleave', () => {
+                isMouseOverDropdown = false;
+                setTimeout(hideDropdownIfNotHovered, 150);
+              });
+            };
+
+            const hideDropdownIfNotHovered = () => {
+              if (!isMouseOverContainer && !isMouseOverDropdown) {
+                const existing = document.getElementById('leetcode-company-hover-dropdown');
+                if (existing) existing.remove();
+              }
+            };
+
+            container.addEventListener('mouseenter', () => {
+              isMouseOverContainer = true;
+              showDropdown();
+            });
+
+            container.addEventListener('mouseleave', () => {
+              isMouseOverContainer = false;
+              setTimeout(hideDropdownIfNotHovered, 150);
+            });
+          }, 0);
+          
+          console.log(`[${EXTENSION}] Displayed ${totalCompanies} companies in horizontal layout`);
+          
         })
         .catch((err) => {
           console.error(`[${EXTENSION}] API error`, err);
@@ -486,7 +635,7 @@
               display: flex;
               align-items: center;
               gap: 8px;
-              color: rgba(239, 68, 68, 0.9);
+              color: ${LEETCODE_COLORS.error};
             ">
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="flex-shrink: 0;">
                 <circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="2" fill="none"/>
