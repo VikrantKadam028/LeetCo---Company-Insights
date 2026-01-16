@@ -1,48 +1,50 @@
-/* LeetCode Company Insights Enhanced Styles */
+/* LeetCode Company Insights - Black + Orange Theme */
 
 .leetcode-company-box {
-  margin-top: 16px;
-  padding: 16px 18px;
-  border-radius: 12px;
+  margin-top: 13px;
+  /* padding: 20px 22px; */
+  border-radius: 16px;
   
-  /* Transparent light grey background with glassmorphism */
-  background: rgba(255, 255, 255, 0.06);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  /* Dark background with gradient */
+  background: transparent;
+  /* backdrop-filter: blur(16px); */
+  /* -webkit-backdrop-filter: blur(16px); */
   
-  /* Subtle border */
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  
-  /* Soft shadow for depth */
-  box-shadow: 
-    0 4px 6px rgba(0, 0, 0, 0.1),
-    0 2px 4px rgba(0, 0, 0, 0.06),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+
+  /* Enhanced shadow */
   
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   font-size: 14px;
-  line-height: 1.5;
+  line-height: 1.6;
   
   /* Smooth transitions */
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  /* transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); */
+  
+  /* Position for overlay */
+  position: relative;
 }
 
 .leetcode-company-box:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(168, 85, 247, 0.25);
-  box-shadow: 
-    0 8px 16px rgba(0, 0, 0, 0.15),
-    0 4px 6px rgba(0, 0, 0, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  background: transparent;
+  border-color: rgba(255, 107, 53, 0.5);
+  /* box-shadow: 
+    0 12px 48px rgba(0, 0, 0, 0.5),
+    0 8px 24px rgba(255, 107, 53, 0.2),
+    inset 0 1px 0 rgba(255, 107, 53, 0.2); */
+  /* transform: translateY(-2px); */
 }
 
 /* Loading animation */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 @keyframes pulse {
   0%, 100% {
     opacity: 1;
   }
   50% {
-    opacity: 0.5;
+    opacity: 0.6;
   }
 }
 
@@ -50,11 +52,138 @@
   animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
+/* Company logo hover effects */
+.company-logo-circle:hover {
+  transform: translateY(-4px) scale(1.15) !important;
+  z-index: 100 !important;
+  box-shadow: 0 6px 16px rgba(255, 107, 53, 0.4) !important;
+}
+
+/* Dropdown scrollbar styling */
+#companies-dropdown::-webkit-scrollbar {
+  width: 6px;
+}
+
+#companies-dropdown::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+}
+
+#companies-dropdown::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #FF6B35, #F7931E);
+  border-radius: 10px;
+  transition: background 0.3s;
+}
+
+#companies-dropdown::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #F7931E, #FF6B35);
+}
+
+/* Dropdown animation */
+#companies-dropdown {
+  animation: slideDown 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Smooth animations for overlay */
+@keyframes fadeInOverlay {
+  from {
+    opacity: 0;
+    backdrop-filter: blur(0);
+  }
+  to {
+    opacity: 1;
+    backdrop-filter: blur(8px);
+  }
+}
+
+@keyframes scaleInContent {
+  from {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .leetcode-company-box {
-    margin-top: 12px;
-    padding: 14px 16px;
-    border-radius: 10px;
+    margin-top: 14px;
+    padding: 16px 18px;
+    border-radius: 14px;
   }
+  
+  #companies-overlay > div {
+    max-width: 90vw !important;
+    padding: 24px !important;
+  }
+  
+  #companies-overlay > div > div:last-child {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)) !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .leetcode-company-box {
+    padding: 14px 16px;
+  }
+  
+  .company-logo-circle {
+    width: 36px !important;
+    height: 36px !important;
+  }
+  
+  #show-all-companies {
+    width: 36px !important;
+    height: 36px !important;
+    font-size: 12px !important;
+  }
+  
+  #companies-overlay > div {
+    padding: 20px !important;
+    border-radius: 16px !important;
+  }
+  
+  #companies-overlay > div > div:last-child {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+}
+
+/* Enhance visual feedback */
+.leetcode-company-box * {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Add glow effect on hover for interactive elements */
+#show-all-companies::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: linear-gradient(135deg, #FF6B35, #F7931E);
+  border-radius: 50%;
+  z-index: -1;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+#show-all-companies:hover::after {
+  opacity: 0.3;
+  animation: pulse 2s infinite;
 }
