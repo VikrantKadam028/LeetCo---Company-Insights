@@ -3,12 +3,12 @@
 
 chrome.runtime.onInstalled.addListener((details) => {
     if (details.reason === 'install') {
-      console.log('LeetCode Company Insights installed!');
+      console.log('LeetCo installed!');
       
       // Open welcome page (optional)
       // chrome.tabs.create({ url: 'https://leetcode.com/problems/two-sum/' });
     } else if (details.reason === 'update') {
-      console.log('LeetCode Company Insights updated!');
+      console.log('LeetCo updated!');
     }
   });
   
