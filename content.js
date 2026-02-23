@@ -501,6 +501,9 @@
                       border-radius: 30px;
                       background: white;
                       display: flex;
+
+                      border: 1px solid grey;
+                      
                       align-items: center;
                       justify-content: center;
                       margin-left: ${index > 0 ? '-8px' : '0'};
@@ -677,3 +680,440 @@
     injectCompanyInsights();
   }
 })();
+
+
+
+/**
+ * content_complexity.js
+ *
+ * Drop-in addition to your existing content.js.
+ * Paste the entire file contents at the bottom of content.js,
+ * OR add it as a second entry in manifest.json content_scripts:
+ *
+ *   "js": ["content.js", "content_complexity.js"]
+ *
+ * ─── What this does ───────────────────────────────────────────────────────────
+ *  1. Waits for LeetCo's company-box to appear (MutationObserver)
+ *  2. Injects an "Analyze Complexity" button below it
+ *  3. Extracts the user's code from Monaco editor (3 strategies)
+ *  4. POSTs to your backend and renders a polished complexity card
+ */
+
+// ─── Config ───────────────────────────────────────────────────────────────────
+
+const LC_BACKEND    = 'https://backend-leetco.onrender.com';
+const LC_BOX_ID     = 'leetco-complexity-box';
+const LC_BTN_ID     = 'leetco-analyze-btn';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 1.  CODE EXTRACTION  (3 strategies, tries in order)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Strategy A — Monaco global registry
+ * Most reliable. Works as long as Monaco exposes window.monaco.
+ */
+function extractViaMonacoGlobal() {
+  try {
+    const editors = window.monaco?.editor?.getEditors?.() ?? [];
+    if (editors.length > 0) return editors[0].getValue();
+  } catch {}
+  return null;
+}
+
+/**
+ * Strategy B — React fiber walk
+ * Finds the Monaco React wrapper and reads its `value` prop.
+ * Brittle — only fails if LeetCode upgrades their React internals.
+ */
+function extractViaReactFiber() {
+  try {
+    const editorEl = document.querySelector('.view-lines');
+    if (!editorEl) return null;
+
+    const fiberKey = Object.keys(editorEl).find(k => k.startsWith('__reactFiber'));
+    let fiber = editorEl[fiberKey];
+
+    while (fiber) {
+      const val = fiber?.memoizedProps?.value;
+      if (typeof val === 'string' && val.trim().length > 0) return val;
+      fiber = fiber.return;
+    }
+  } catch {}
+  return null;
+}
+
+/**
+ * Strategy C — DOM text scrape (last resort)
+ * Concatenates visible line text from Monaco's rendered DOM.
+ * Loses some whitespace; only used when A and B fail.
+ */
+function extractViaDOMScrape() {
+  try {
+    const lines = [...document.querySelectorAll('.view-lines .view-line')]
+      .map(el => el.textContent)
+      .join('\n');
+    return lines.trim() ? lines : null;
+  } catch {}
+  return null;
+}
+
+function extractCode() {
+  return extractViaMonacoGlobal()
+      ?? extractViaReactFiber()
+      ?? extractViaDOMScrape();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 2.  LANGUAGE DETECTION
+// ─────────────────────────────────────────────────────────────────────────────
+
+function detectLanguage() {
+  const selectors = [
+    '[data-cy="lang-select"] span',
+    '.ant-select-selection-item',
+    'button[id*="headlessui"] span',
+    '[class*="LanguageSelector"] span',
+  ];
+
+  let raw = '';
+  for (const sel of selectors) {
+    const el = document.querySelector(sel);
+    if (el?.textContent?.trim()) { raw = el.textContent.trim().toLowerCase(); break; }
+  }
+
+  const MAP = {
+    'c++': 'cpp', 'c#': 'csharp', 'python3': 'python',
+    javascript: 'javascript', typescript: 'typescript',
+    java: 'java', go: 'go', rust: 'rust',
+    kotlin: 'kotlin', swift: 'swift', ruby: 'ruby', python: 'python',
+  };
+
+  return MAP[raw] ?? raw ?? 'python';
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 3.  BACKEND CALL
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function fetchComplexity(code, language) {
+  const res = await fetch(`${LC_BACKEND}/api/analyze-complexity`, {
+    method : 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body   : JSON.stringify({ code, language }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message ?? `Server error ${res.status}`);
+  }
+
+  return res.json();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 4.  UI — Button injection
+// ─────────────────────────────────────────────────────────────────────────────
+
+function findAnchor() {
+  return (
+    document.querySelector('.leetcode-company-box') ??
+    document.querySelector('#leetco-company-section') ??
+    null
+  );
+}
+
+function injectButton(anchor) {
+  if (document.getElementById(LC_BTN_ID)) return;
+
+  const btn = document.createElement('button');
+  btn.id = LC_BTN_ID;
+  btn.innerHTML = svgIcon('waveform') + ' Analyze Complexity';
+
+  Object.assign(btn.style, {
+    marginTop     : '10px',
+    display       : 'inline-flex',
+    alignItems    : 'center',
+    gap           : '7px',
+    padding       : '8px 16px',
+    background    : 'linear-gradient(135deg,#ff6b1a,#ff8c00)',
+    color         : '#fff',
+    border        : 'none',
+    borderRadius  : '9px',
+    fontSize      : '13px',
+    fontWeight    : '600',
+    cursor        : 'pointer',
+    fontFamily    : 'inherit',
+    letterSpacing : '0.15px',
+    boxShadow     : '0 2px 8px rgba(255,107,0,.35)',
+    transition    : 'opacity .2s, transform .15s, box-shadow .2s',
+  });
+
+  btn.addEventListener('mouseenter', () => {
+    btn.style.opacity   = '0.9';
+    btn.style.transform = 'translateY(-1px)';
+    btn.style.boxShadow = '0 4px 14px rgba(255,107,0,.45)';
+  });
+  btn.addEventListener('mouseleave', () => {
+    btn.style.opacity   = '1';
+    btn.style.transform = 'translateY(0)';
+    btn.style.boxShadow = '0 2px 8px rgba(255,107,0,.35)';
+  });
+
+  btn.addEventListener('click', () => onAnalyzeClick(btn));
+  anchor.insertAdjacentElement('afterend', btn);
+}
+
+async function onAnalyzeClick(btn) {
+  const code = extractCode();
+
+  if (!code?.trim()) {
+    renderError('No code found in the editor — write something first!');
+    return;
+  }
+
+  // Loading state
+  btn.disabled     = true;
+  btn.innerHTML    = spinnerHTML() + ' Analyzing…';
+  btn.style.opacity = '0.75';
+
+  try {
+    const lang   = detectLanguage();
+    const result = await fetchComplexity(code, lang);
+    renderComplexityCard(result);
+
+    btn.innerHTML = svgIcon('waveform') + ' Re-analyze';
+  } catch (err) {
+    renderError(err.message ?? 'Analysis failed — try again');
+    btn.innerHTML = svgIcon('waveform') + ' Retry';
+  } finally {
+    btn.disabled      = false;
+    btn.style.opacity = '1';
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 5.  UI — Complexity card renderer
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Complexity → 0–100 score for the progress bar */
+const BIG_O_SCORE = {
+  'O(1)':           1,
+  'O(log n)':       15,
+  'O(n)':           28,
+  'O(n log n)':     42,
+  'O(n²)':          60,
+  'O(n²) or worse': 68,
+  'O(n³)':          78,
+  'O(2ⁿ) or O(n)': 88,
+  'O(2ⁿ)':          96,
+};
+
+const BIG_O_COLOR = [
+  [15,  '#22c55e'],   // green   — O(1) .. O(log n)
+  [30,  '#84cc16'],   // lime    — O(n)
+  [50,  '#facc15'],   // yellow  — O(n log n)
+  [70,  '#f97316'],   // orange  — O(n²)
+  [100, '#ef4444'],   // red     — O(n³)+
+];
+
+function getColor(notation) {
+  const score = BIG_O_SCORE[notation] ?? 42;
+  for (const [max, col] of BIG_O_COLOR) {
+    if (score <= max) return col;
+  }
+  return '#ef4444';
+}
+
+function getBarWidth(notation) {
+  return Math.max(4, BIG_O_SCORE[notation] ?? 42);
+}
+
+function renderComplexityCard(data) {
+  document.getElementById(LC_BOX_ID)?.remove();
+
+  const tcColor = getColor(data.timeComplexity);
+  const scColor = getColor(data.spaceComplexity);
+  const tcWidth = getBarWidth(data.timeComplexity);
+  const scWidth = getBarWidth(data.spaceComplexity);
+
+  const sourceLabel = data.source === 'timecomplexity.ai'
+    ? '🌐 TimeComplexity.ai'
+    : data.source === 'rule-based'
+    ? '⚡ Estimated (rule-based)'
+    : data.source;
+
+  const confidenceColors = { high: '#22c55e', medium: '#facc15', low: '#94a3b8' };
+  const confColor = confidenceColors[data.confidence] ?? '#94a3b8';
+
+  const breakdownHTML = (data.breakdown?.length)
+    ? `<div style="margin-top:14px;padding-top:12px;border-top:1px solid #1f1f1f">
+        <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:.6px;color:#555;margin-bottom:8px">Breakdown</div>
+        ${data.breakdown.map(b => `
+          <div style="display:flex;justify-content:space-between;align-items:center;
+                      padding:5px 0;border-bottom:1px solid #181818;font-size:12px">
+            <span style="color:#9ca3af">${b.label}</span>
+            <code style="color:#ff8c00;font-size:12px;font-weight:700">${b.complexity}</code>
+          </div>`).join('')}
+      </div>`
+    : '';
+
+  const ruleBasedNote = data.source === 'rule-based'
+    ? `<div style="margin-top:12px;padding:9px 11px;background:#181818;border-radius:7px;
+                   font-size:11px;color:#4b5563;line-height:1.55">
+        ⚡ Estimated via static pattern analysis (TimeComplexity.ai was unreachable).
+        Results are approximate — resubmit to retry the online analyzer.
+       </div>`
+    : '';
+
+  const card = document.createElement('div');
+  card.id = LC_BOX_ID;
+  card.innerHTML = `
+    <style>
+      @keyframes _lcFadeUp  { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:none} }
+      @keyframes _lcBarGrow { from{width:0} }
+      #${LC_BOX_ID} { animation:_lcFadeUp .3s ease-out both }
+    </style>
+
+    <div style="
+      margin-top:12px; padding:16px 18px;
+      border-radius:13px; background:#0f0f0f;
+      border:1px solid #1e1e1e;
+      font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+      color:#fff; font-size:13px;
+    ">
+
+      <!-- ── Header ── -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:15px">
+        <div style="display:flex;align-items:center;gap:7px;font-weight:700;font-size:13.5px">
+          ${svgIcon('waveform', '#ff8c00')}
+          Complexity Analysis
+        </div>
+        <span style="
+          display:inline-flex;align-items:center;gap:4px;
+          padding:2px 9px;border-radius:99px;
+          background:${confColor}18;color:${confColor};
+          font-size:10.5px;font-weight:600;letter-spacing:.3px
+        ">
+          <span style="width:5px;height:5px;border-radius:50%;background:${confColor}"></span>
+          ${sourceLabel}
+        </span>
+      </div>
+
+      <!-- ── Time Complexity ── -->
+      <div style="margin-bottom:14px">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px">
+          <span style="color:#6b7280;font-size:11px;text-transform:uppercase;letter-spacing:.5px">Time</span>
+          <code style="font-size:18px;font-weight:800;color:${tcColor};letter-spacing:-.5px;font-family:monospace">
+            ${data.timeComplexity ?? '—'}
+          </code>
+        </div>
+        <div style="height:5px;background:#1a1a1a;border-radius:99px;overflow:hidden">
+          <div style="
+            height:100%;width:${tcWidth}%;border-radius:99px;
+            background:linear-gradient(90deg,${tcColor}66,${tcColor});
+            animation:_lcBarGrow .55s cubic-bezier(.4,0,.2,1) both
+          "></div>
+        </div>
+        ${data.timeReasoning
+          ? `<div style="margin-top:5px;color:#6b7280;font-size:11.5px;line-height:1.5">${data.timeReasoning}</div>`
+          : ''}
+      </div>
+
+      <!-- ── Space Complexity ── -->
+      <div>
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px">
+          <span style="color:#6b7280;font-size:11px;text-transform:uppercase;letter-spacing:.5px">Space</span>
+          <code style="font-size:18px;font-weight:800;color:${scColor};letter-spacing:-.5px;font-family:monospace">
+            ${data.spaceComplexity ?? '—'}
+          </code>
+        </div>
+        <div style="height:5px;background:#1a1a1a;border-radius:99px;overflow:hidden">
+          <div style="
+            height:100%;width:${scWidth}%;border-radius:99px;
+            background:linear-gradient(90deg,${scColor}66,${scColor});
+            animation:_lcBarGrow .7s .1s cubic-bezier(.4,0,.2,1) both
+          "></div>
+        </div>
+        ${data.spaceReasoning
+          ? `<div style="margin-top:5px;color:#6b7280;font-size:11.5px;line-height:1.5">${data.spaceReasoning}</div>`
+          : ''}
+      </div>
+
+      ${breakdownHTML}
+      ${ruleBasedNote}
+    </div>`;
+
+  document.getElementById(LC_BTN_ID)?.insertAdjacentElement('afterend', card);
+}
+
+function renderError(msg) {
+  document.getElementById(LC_BOX_ID)?.remove();
+
+  const el = document.createElement('div');
+  el.id = LC_BOX_ID;
+  Object.assign(el.style, {
+    marginTop   : '10px',
+    padding     : '11px 14px',
+    borderRadius: '9px',
+    background  : '#180a0a',
+    border      : '1px solid #3f1515',
+    color       : '#f87171',
+    fontSize    : '12.5px',
+    fontFamily  : 'inherit',
+  });
+  el.textContent = `⚠️  ${msg}`;
+
+  document.getElementById(LC_BTN_ID)?.insertAdjacentElement('afterend', el);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 6.  HELPERS
+// ─────────────────────────────────────────────────────────────────────────────
+
+function svgIcon(type, color = 'currentColor') {
+  if (type === 'waveform') {
+    return `<svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+      stroke="${color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+    </svg>`;
+  }
+  return '';
+}
+
+function spinnerHTML() {
+  return `<span style="
+    display:inline-block;width:12px;height:12px;flex-shrink:0;
+    border:2px solid rgba(255,255,255,.25);
+    border-top-color:#fff;border-radius:50%;
+    animation:spin .65s linear infinite
+  "></span>`;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 7.  BOOT — observe DOM, inject button when company box appears
+// ─────────────────────────────────────────────────────────────────────────────
+
+(function boot() {
+  function tryInject() {
+    const anchor = findAnchor();
+    if (anchor) injectButton(anchor);
+  }
+
+  // Try immediately (page might already be loaded)
+  tryInject();
+
+  // Watch for SPA navigation / React re-renders
+  new MutationObserver(tryInject).observe(document.body, {
+    childList: true,
+    subtree  : true,
+  });
+})();
+
+// Handle PING from popup.js (existing extension pattern)
+if (typeof chrome !== 'undefined' && chrome.runtime?.onMessage) {
+  chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+    if (msg.type === 'PING_EXTENSION') sendResponse({ status: 'READY' });
+    return true;
+  });
+}
